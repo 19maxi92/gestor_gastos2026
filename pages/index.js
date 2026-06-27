@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [gastos, setGastos] = useState([])
   const [ingreso, setIngreso] = useState(null)
   const [vencimientos, setVencimientos] = useState([])
+  const [dolares, setDolares] = useState(null)
 
   // Ingreso form
   const [showIngresoForm, setShowIngresoForm] = useState(false)
@@ -36,6 +37,17 @@ export default function Dashboard() {
       setUser(session.user)
       loadAll(session.user.id)
     })
+    // Fetch dollar rates independently (non-blocking)
+    fetch('/api/dolares')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.error) {
+          const tipos = ['oficial', 'blue', 'tarjeta']
+          const filtered = data.filter(d => tipos.includes(d.casa))
+          setDolares(filtered)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const loadAll = async (userId) => {
@@ -146,6 +158,25 @@ export default function Dashboard() {
         </div>
         <button onClick={() => router.push('/gastos')} className="btn btn-primary">+ Agregar gasto</button>
       </div>
+
+      {/* Dollar tracker */}
+      {dolares && dolares.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          {dolares.map(d => (
+            <div key={d.casa} style={{
+              background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px',
+              padding: '0.4rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+            }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'capitalize', fontWeight: '600' }}>
+                💵 {d.casa === 'tarjeta' ? 'Tarjeta' : d.casa.charAt(0).toUpperCase() + d.casa.slice(1)}
+              </span>
+              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: d.casa === 'blue' ? 'var(--primary-light)' : 'var(--text)' }}>
+                ${(d.venta || d.compra || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="cards-grid" style={{ marginBottom: '1rem' }}>
