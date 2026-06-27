@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Layout from '../components/Layout'
 
 const CUENTAS = ['Efectivo', 'Débito', 'Crédito', 'Billetera digital', 'Ahorros']
+const DIVISAS = ['ARS', 'USD Blue', 'USD Oficial']
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 const emptyForm = {
@@ -11,6 +12,7 @@ const emptyForm = {
   monto: '',
   categoria_id: '',
   cuenta: 'Efectivo',
+  divisa: 'ARS',
   descripcion: '',
   notas: '',
 }
@@ -22,13 +24,11 @@ export default function Gastos() {
   const [gastos, setGastos] = useState([])
   const [categorias, setCategorias] = useState([])
 
-  // Filters
   const now = new Date()
   const [mes, setMes] = useState(now.getMonth())
   const [anio, setAnio] = useState(now.getFullYear())
   const [catFiltro, setCatFiltro] = useState('')
 
-  // Modal
   const [showModal, setShowModal] = useState(false)
   const [editingGasto, setEditingGasto] = useState(null)
   const [form, setForm] = useState(emptyForm)
@@ -86,6 +86,7 @@ export default function Gastos() {
       monto: String(gasto.monto),
       categoria_id: gasto.categoria_id ? String(gasto.categoria_id) : '',
       cuenta: gasto.cuenta,
+      divisa: gasto.divisa || 'ARS',
       descripcion: gasto.descripcion || '',
       notas: gasto.notas || '',
     })
@@ -107,6 +108,7 @@ export default function Gastos() {
       monto: parseFloat(form.monto),
       categoria_id: form.categoria_id ? parseInt(form.categoria_id) : null,
       cuenta: form.cuenta,
+      divisa: form.divisa,
       descripcion: form.descripcion || null,
       notas: form.notas || null,
     }
@@ -118,12 +120,8 @@ export default function Gastos() {
       ;({ error } = await supabase.from('gastos').insert({ ...payload, user_id: user.id }))
     }
 
-    if (error) {
-      setFormError('Error al guardar: ' + error.message)
-    } else {
-      setShowModal(false)
-      loadGastos()
-    }
+    if (error) { setFormError('Error al guardar: ' + error.message) }
+    else { setShowModal(false); loadGastos() }
     setSaving(false)
   }
 
@@ -133,8 +131,30 @@ export default function Gastos() {
     loadGastos()
   }
 
-  const total = gastos.reduce((sum, g) => sum + parseFloat(g.monto), 0)
+  const exportCSV = () => {
+    const headers = ['Fecha', 'Descripción', 'Categoría', 'Monto', 'Divisa', 'Cuenta', 'Notas']
+    const rows = gastos.map(g => [
+      g.fecha,
+      g.descripcion || '',
+      g.categorias?.nombre || '',
+      g.monto,
+      g.divisa || 'ARS',
+      g.cuenta,
+      g.notas || '',
+    ])
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gastos_${MESES[mes]}_${anio}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
+  const total = gastos.reduce((sum, g) => sum + parseFloat(g.monto), 0)
   const anios = []
   for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) anios.push(y)
 
@@ -182,9 +202,16 @@ export default function Gastos() {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
           {gastos.length} gasto{gastos.length !== 1 ? 's' : ''} · {MESES[mes]} {anio}
         </p>
-        <p style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary-light)' }}>
-          Total: ${total.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <p style={{ fontWeight: '700', fontSize: '1.05rem', color: 'var(--primary-light)' }}>
+            Total: ${total.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </p>
+          {gastos.length > 0 && (
+            <button onClick={exportCSV} className="btn" style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.35rem 0.7rem' }}>
+              ⬇️ CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Expense list */}
@@ -200,15 +227,9 @@ export default function Gastos() {
             <div key={gasto.id} className="gasto-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
+                  width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
                   background: (gasto.categorias?.color || '#7c3aed') + '25',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.2rem',
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem',
                 }}>
                   {gasto.categorias?.icono || '📦'}
                 </div>
@@ -216,10 +237,13 @@ export default function Gastos() {
                   <p style={{ fontWeight: '500', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {gasto.descripcion || gasto.categorias?.nombre || 'Sin descripción'}
                   </p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem' }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
                     {new Date(gasto.fecha + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     {' · '}{gasto.categorias?.nombre || 'Sin cat.'}
                     {' · '}{gasto.cuenta}
+                    {gasto.divisa && gasto.divisa !== 'ARS' && (
+                      <span className="badge-divisa">{gasto.divisa}</span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -237,56 +261,44 @@ export default function Gastos() {
 
       {/* Modal add/edit */}
       {showModal && (
-        <div
-          className="modal-overlay"
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}
-        >
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="modal-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>
-                {editingGasto ? 'Editar gasto' : 'Nuevo gasto'}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="btn"
-                style={{ background: 'transparent', color: 'var(--text-muted)', fontSize: '1.1rem', padding: '0.2rem 0.5rem' }}
-              >
-                ✕
-              </button>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>{editingGasto ? 'Editar gasto' : 'Nuevo gasto'}</h2>
+              <button onClick={() => setShowModal(false)} className="btn" style={{ background: 'transparent', color: 'var(--text-muted)', fontSize: '1.1rem', padding: '0.2rem 0.5rem' }}>✕</button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="form-grid-2">
                 <div>
                   <label className="form-label">Fecha</label>
-                  <input
-                    type="date"
-                    value={form.fecha}
-                    onChange={e => setForm({ ...form, fecha: e.target.value })}
-                    required
-                  />
+                  <input type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="form-label">Monto ($)</label>
+                  <label className="form-label">Monto</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
+                    type="number" step="0.01" min="0.01"
                     value={form.monto}
                     onChange={e => setForm({ ...form, monto: e.target.value })}
-                    placeholder="0"
-                    required
-                    autoFocus
+                    placeholder="0" required autoFocus
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="form-label">Categoría</label>
-                <select value={form.categoria_id} onChange={e => setForm({ ...form, categoria_id: e.target.value })}>
-                  <option value=''>Sin categoría</option>
-                  {categorias.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
-                </select>
+              <div className="form-grid-2">
+                <div>
+                  <label className="form-label">Categoría</label>
+                  <select value={form.categoria_id} onChange={e => setForm({ ...form, categoria_id: e.target.value })}>
+                    <option value=''>Sin categoría</option>
+                    {categorias.map(c => <option key={c.id} value={c.id}>{c.icono} {c.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Divisa</label>
+                  <select value={form.divisa} onChange={e => setForm({ ...form, divisa: e.target.value })}>
+                    {DIVISAS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -299,38 +311,24 @@ export default function Gastos() {
               <div>
                 <label className="form-label">Descripción</label>
                 <input
-                  type="text"
-                  value={form.descripcion}
+                  type="text" value={form.descripcion}
                   onChange={e => setForm({ ...form, descripcion: e.target.value })}
-                  placeholder="¿En qué gastaste?"
-                  maxLength={100}
+                  placeholder="¿En qué gastaste?" maxLength={100}
                 />
               </div>
 
               <div>
                 <label className="form-label">Notas (opcional)</label>
                 <textarea
-                  value={form.notas}
-                  onChange={e => setForm({ ...form, notas: e.target.value })}
-                  placeholder="Notas adicionales..."
-                  rows={2}
-                  style={{ resize: 'vertical' }}
+                  value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })}
+                  placeholder="Notas adicionales..." rows={2} style={{ resize: 'vertical' }}
                 />
               </div>
 
-              {formError && (
-                <p style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{formError}</p>
-              )}
+              {formError && <p style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>{formError}</p>}
 
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn"
-                  style={{ background: 'var(--border)', color: 'var(--text)' }}
-                >
-                  Cancelar
-                </button>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn" style={{ background: 'var(--border)', color: 'var(--text)' }}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? 'Guardando...' : editingGasto ? 'Guardar cambios' : 'Agregar'}
                 </button>

@@ -162,6 +162,28 @@ input:focus, select:focus, textarea:focus {
   overflow-y: auto;
 }
 
+/* Two column grid */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Divisa badge */
+.badge-divisa {
+  display: inline-block;
+  background: #06b6d420;
+  color: var(--secondary);
+  border: 1px solid #06b6d440;
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+  letter-spacing: 0.02em;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .user-email { display: none; }

@@ -12,6 +12,7 @@ export default function Layout({ user, children }) {
   const navItems = [
     { href: '/', icon: '📊', label: 'Dashboard' },
     { href: '/gastos', icon: '💸', label: 'Gastos' },
+    { href: '/vencimientos', icon: '📅', label: 'Vencimientos' },
     { href: '/perfil', icon: '👤', label: 'Perfil' },
   ]
 
