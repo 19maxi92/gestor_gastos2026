@@ -19,6 +19,8 @@ export default function Layout({ user, children }) {
     { href: '/vencimientos', icon: '📅', label: 'Vencimientos' },
     { href: '/finscore', icon: '📈', label: 'FinScore' },
     { href: '/deudas', icon: '🤝', label: 'Deudas' },
+    { href: '/tarjetas', icon: '🏦', label: 'Tarjetas' },
+    { href: '/logros', icon: '🏆', label: 'Logros' },
     { href: '/perfil', icon: '👤', label: 'Perfil' },
   ]
 

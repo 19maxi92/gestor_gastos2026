@@ -7,6 +7,57 @@ const CUENTAS = ['Efectivo', 'Débito', 'Crédito', 'Billetera digital', 'Ahorro
 const DIVISAS = ['ARS', 'USD Blue', 'USD Oficial']
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
+const CAT_KEYWORDS = {
+  'Comida': ['comida', 'restaurant', 'resto', 'almuerzo', 'cena', 'desayuno', 'pizza', 'hambur', 'sushi', 'cafe', 'café', 'medialunas', 'facturas', 'empanadas', 'tostadas', 'panaderia'],
+  'Transporte': ['uber', 'taxi', 'colectivo', 'nafta', 'combustible', 'tren', 'subte', 'remis', 'peaje', 'estacionamiento', 'cabify'],
+  'Supermercado': ['super', 'coto', 'carrefour', 'dia ', 'jumbo', 'verdur', 'feria', 'despensa', 'almacen'],
+  'Hogar': ['hogar', 'alquiler', 'expensas', 'luz', 'gas ', 'agua ', 'internet', 'cable', 'plomero', 'electricista', 'limpieza'],
+  'Salud': ['farmacia', 'medico', 'médico', 'doctor', 'medicina', 'clinica', 'clínica', 'prepaga', 'salud', 'dentista', 'turno'],
+  'Entretenimiento': ['cine', 'teatro', 'concierto', 'show', 'spotify', 'netflix', 'entretenimiento', 'juego', 'bowling'],
+  'Ropa': ['ropa', 'zapatillas', 'zapatos', 'vestimenta', 'indumentaria', 'camisa', 'pantalon', 'remera'],
+  'Tecnología': ['tecnologia', 'tecnología', 'celular', 'computadora', 'notebook', 'tablet', 'cable usb', 'auricular', 'cargador'],
+}
+
+const CUENTA_KEYWORDS = {
+  'Débito': ['débito', 'debito', 'debit', 'tarjeta debito'],
+  'Crédito': ['crédito', 'credito', 'credit', 'tarjeta credito', 'tarjeta'],
+  'Billetera digital': ['billetera', 'mercado pago', 'mp', 'uala', 'personal pay', 'brubank'],
+  'Ahorros': ['ahorros', 'caja de ahorro'],
+  'Efectivo': ['efectivo', 'cash', 'plata', 'billetes'],
+}
+
+function parseTextoLibre(texto, categorias) {
+  const t = texto.toLowerCase()
+
+  // Amount: find first number (handles "5000", "5.000", "$5000")
+  const montoMatch = t.match(/\$?\s*([\d]+(?:[.,][\d]+)?)/)
+  let monto = ''
+  if (montoMatch) {
+    const raw = montoMatch[1].replace(/\./g, '').replace(',', '.')
+    monto = String(parseFloat(raw))
+  }
+
+  // Account
+  let cuenta = 'Efectivo'
+  for (const [cta, keys] of Object.entries(CUENTA_KEYWORDS)) {
+    if (keys.some(k => t.includes(k))) { cuenta = cta; break }
+  }
+
+  // Category: match against keywords first, then against category names
+  let categoria_id = ''
+  for (const cat of categorias) {
+    const keywords = CAT_KEYWORDS[cat.nombre] || [cat.nombre.toLowerCase()]
+    if (keywords.some(k => t.includes(k))) { categoria_id = String(cat.id); break }
+  }
+
+  // Description: text after "en" / "para" / "de" before cuenta keywords
+  let descripcion = ''
+  const enMatch = texto.match(/(?:en|para|de)\s+([A-Za-záéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+(?:con|por|usando|$))/i)
+  if (enMatch) descripcion = enMatch[1].trim()
+
+  return { monto, cuenta, categoria_id, descripcion }
+}
+
 const emptyForm = {
   fecha: new Date().toISOString().split('T')[0],
   monto: '',
@@ -34,6 +85,10 @@ export default function Gastos() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+
+  // Carga rápida
+  const [textoLibre, setTextoLibre] = useState('')
+  const [parseMsg, setParseMsg] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -70,6 +125,19 @@ export default function Gastos() {
 
     const { data } = await query
     setGastos(data || [])
+  }
+
+  const handleTextoLibre = (e) => {
+    e.preventDefault()
+    if (!textoLibre.trim()) return
+    const parsed = parseTextoLibre(textoLibre, categorias)
+    if (!parsed.monto) { setParseMsg('No encontré el monto. Intentá: "gasté 5000 en comida"'); return }
+    setEditingGasto(null)
+    setForm({ ...emptyForm, ...parsed })
+    setParseMsg('')
+    setTextoLibre('')
+    setFormError('')
+    setShowModal(true)
   }
 
   const openAdd = () => {
@@ -171,6 +239,19 @@ export default function Gastos() {
         <h1 style={{ fontSize: '1.4rem', fontWeight: '700' }}>💸 Gastos</h1>
         <button onClick={openAdd} className="btn btn-primary">+ Agregar gasto</button>
       </div>
+
+      {/* Carga rápida */}
+      <form onSubmit={handleTextoLibre} style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+        <input
+          type="text"
+          value={textoLibre}
+          onChange={e => { setTextoLibre(e.target.value); setParseMsg('') }}
+          placeholder='💬 Carga rápida: "gasté 5000 en comida con débito"'
+          style={{ flex: 1 }}
+        />
+        <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>Parsear</button>
+      </form>
+      {parseMsg && <p style={{ color: 'var(--warning)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{parseMsg}</p>}
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
