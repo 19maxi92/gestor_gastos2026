@@ -162,6 +162,16 @@ input:focus, select:focus, textarea:focus {
   overflow-y: auto;
 }
 
+/* Scrollable nav */
+.nav-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-scroll::-webkit-scrollbar { display: none; }
+
+/* Brand responsive */
+.brand-short { display: none; }
+
 /* Two column grid */
 .two-col-grid {
   display: grid;
@@ -188,7 +198,9 @@ input:focus, select:focus, textarea:focus {
 @media (max-width: 600px) {
   .user-email { display: none; }
   .nav-label { display: none; }
-  .nav-btn { padding: 0.4rem 0.65rem; }
+  .nav-btn { padding: 0.4rem 0.55rem; }
+  .brand-full { display: none; }
+  .brand-short { display: inline; }
 
   .cards-grid {
     grid-template-columns: 1fr 1fr;

@@ -12,6 +12,10 @@ export default function Layout({ user, children }) {
   const navItems = [
     { href: '/', icon: '📊', label: 'Dashboard' },
     { href: '/gastos', icon: '💸', label: 'Gastos' },
+    { href: '/presupuestos', icon: '🎯', label: 'Presupuestos' },
+    { href: '/recurrentes', icon: '🔄', label: 'Recurrentes' },
+    { href: '/metas', icon: '⭐', label: 'Metas' },
+    { href: '/suscripciones', icon: '💳', label: 'Suscripciones' },
     { href: '/vencimientos', icon: '📅', label: 'Vencimientos' },
     { href: '/perfil', icon: '👤', label: 'Perfil' },
   ]
@@ -21,7 +25,7 @@ export default function Layout({ user, children }) {
       <nav style={{
         background: 'var(--card)',
         borderBottom: '1px solid var(--border)',
-        padding: '0 1rem',
+        padding: '0 0.75rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -29,12 +33,14 @@ export default function Layout({ user, children }) {
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        gap: '0.5rem',
       }}>
-        <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--primary-light)', whiteSpace: 'nowrap' }}>
-          💰 Mis Gastos
+        <div style={{ fontWeight: '700', color: 'var(--primary-light)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+          <span className="brand-full" style={{ fontSize: '0.95rem' }}>💰 Mis Gastos</span>
+          <span className="brand-short" style={{ fontSize: '1.2rem' }}>💰</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.25rem' }}>
+        <div className="nav-scroll" style={{ display: 'flex', gap: '0.2rem', flex: 1, padding: '0 0.25rem' }}>
           {navItems.map(item => (
             <button
               key={item.href}
@@ -43,6 +49,7 @@ export default function Layout({ user, children }) {
               style={{
                 background: router.pathname === item.href ? 'var(--primary)' : 'transparent',
                 color: router.pathname === item.href ? 'white' : 'var(--text-muted)',
+                flexShrink: 0,
               }}
             >
               <span className="nav-icon">{item.icon}</span>
@@ -51,18 +58,13 @@ export default function Layout({ user, children }) {
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span className="user-email" style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-            {user?.email}
-          </span>
-          <button
-            onClick={handleLogout}
-            className="btn"
-            style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
-          >
-            Salir
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="btn"
+          style={{ background: 'var(--border)', color: 'var(--text-muted)', fontSize: '0.78rem', padding: '0.35rem 0.65rem', flexShrink: 0 }}
+        >
+          Salir
+        </button>
       </nav>
 
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 1rem' }}>
