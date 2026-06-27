@@ -69,9 +69,18 @@ export default function Home() {
             Bienvenido, {user?.email}
           </p>
         </div>
-        <button onClick={handleLogout} className="btn" style={{ background: 'var(--border)', color: 'var(--text)' }}>
-          Cerrar sesión
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => router.push('/perfil')}
+            className="btn"
+            style={{ background: 'var(--border)', color: 'var(--text)' }}
+          >
+            👤 Mi perfil
+          </button>
+          <button onClick={handleLogout} className="btn" style={{ background: 'var(--border)', color: 'var(--text)' }}>
+            Cerrar sesión
+          </button>
+        </div>
       </div>
 
       {/* Cards resumen */}
