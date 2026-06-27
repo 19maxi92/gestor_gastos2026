@@ -12,6 +12,7 @@ export default function Layout({ user, children }) {
   const navItems = [
     { href: '/', icon: '📊', label: 'Dashboard' },
     { href: '/gastos', icon: '💸', label: 'Gastos' },
+    { href: '/ingresos', icon: '💵', label: 'Ingresos' },
     { href: '/presupuestos', icon: '🎯', label: 'Presupuestos' },
     { href: '/recurrentes', icon: '🔄', label: 'Recurrentes' },
     { href: '/metas', icon: '⭐', label: 'Metas' },

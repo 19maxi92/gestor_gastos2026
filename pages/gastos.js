@@ -89,6 +89,7 @@ export default function Gastos() {
   // Carga rápida
   const [textoLibre, setTextoLibre] = useState('')
   const [parseMsg, setParseMsg] = useState('')
+  const [listening, setListening] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -125,6 +126,37 @@ export default function Gastos() {
 
     const { data } = await query
     setGastos(data || [])
+  }
+
+  const startListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      setParseMsg('Tu navegador no soporta voz. Usá Chrome en el celu.')
+      return
+    }
+    const recognition = new SR()
+    recognition.lang = 'es-AR'
+    recognition.continuous = false
+    recognition.interimResults = false
+    setListening(true)
+    setParseMsg('')
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      setListening(false)
+      const parsed = parseTextoLibre(transcript, categorias)
+      if (parsed.monto) {
+        setEditingGasto(null)
+        setForm({ ...emptyForm, ...parsed })
+        setFormError('')
+        setShowModal(true)
+      } else {
+        setTextoLibre(transcript)
+        setParseMsg(`Escuché: "${transcript}" — no encontré el monto, editá y presioná Parsear`)
+      }
+    }
+    recognition.onerror = () => { setListening(false); setParseMsg('Error de micrófono. Revisá los permisos.') }
+    recognition.onend = () => setListening(false)
+    recognition.start()
   }
 
   const handleTextoLibre = (e) => {
@@ -241,17 +273,37 @@ export default function Gastos() {
       </div>
 
       {/* Carga rápida */}
-      <form onSubmit={handleTextoLibre} style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+      <form onSubmit={handleTextoLibre} style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+        <button
+          type="button"
+          onClick={startListening}
+          disabled={listening}
+          className="btn"
+          title="Dictar gasto por voz"
+          style={{
+            flexShrink: 0,
+            background: listening ? '#ef444422' : 'var(--border)',
+            color: listening ? 'var(--danger)' : 'var(--text)',
+            border: listening ? '1px solid var(--danger)' : '1px solid transparent',
+            fontSize: '1.1rem',
+            padding: '0.4rem 0.65rem',
+            animation: listening ? 'pulse 1.2s ease-in-out infinite' : 'none',
+          }}
+        >
+          🎤
+        </button>
         <input
           type="text"
-          value={textoLibre}
-          onChange={e => { setTextoLibre(e.target.value); setParseMsg('') }}
-          placeholder='💬 Carga rápida: "gasté 5000 en comida con débito"'
-          style={{ flex: 1 }}
+          value={listening ? '🔴 Escuchando...' : textoLibre}
+          onChange={e => { if (!listening) { setTextoLibre(e.target.value); setParseMsg('') } }}
+          placeholder='"gasté 5000 en comida con débito" o dictar 🎤'
+          style={{ flex: 1, fontStyle: listening ? 'italic' : 'normal', color: listening ? 'var(--text-muted)' : 'var(--text)' }}
+          readOnly={listening}
         />
-        <button type="submit" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>Parsear</button>
+        <button type="submit" className="btn btn-primary" disabled={listening} style={{ whiteSpace: 'nowrap' }}>Parsear</button>
       </form>
       {parseMsg && <p style={{ color: 'var(--warning)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>{parseMsg}</p>}
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>

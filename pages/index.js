@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [showIngresoForm, setShowIngresoForm] = useState(false)
   const [ingresoMonto, setIngresoMonto] = useState('')
   const [savingIngreso, setSavingIngreso] = useState(false)
+  const [ingresoAnterior, setIngresoAnterior] = useState(null)
 
   // Admin
   const [showCreateUser, setShowCreateUser] = useState(false)
@@ -54,7 +55,10 @@ export default function Dashboard() {
     const firstDay = new Date(anioCurrent, mesCurrent, 1).toISOString().split('T')[0]
     const lastDay = new Date(anioCurrent, mesCurrent + 1, 0).toISOString().split('T')[0]
 
-    const [gastosRes, ingresoRes, vencRes] = await Promise.all([
+    const prevMes = mesCurrent === 0 ? 11 : mesCurrent - 1
+    const prevAnio = mesCurrent === 0 ? anioCurrent - 1 : anioCurrent
+
+    const [gastosRes, ingresoRes, vencRes, ingresoAnteriorRes] = await Promise.all([
       supabase
         .from('gastos')
         .select('*, categorias(nombre, icono, color)')
@@ -75,10 +79,18 @@ export default function Dashboard() {
         .select('*, categorias(nombre, icono)')
         .eq('user_id', userId)
         .eq('activo', true),
+      supabase
+        .from('ingresos')
+        .select('monto')
+        .eq('user_id', userId)
+        .eq('mes', prevMes)
+        .eq('anio', prevAnio)
+        .maybeSingle(),
     ])
 
     setGastos(gastosRes.data || [])
     setIngreso(ingresoRes.data || null)
+    setIngresoAnterior(ingresoAnteriorRes.data || null)
     setVencimientos(vencRes.data || [])
     setLoading(false)
   }
@@ -199,7 +211,7 @@ export default function Dashboard() {
             </button>
           </div>
           {showIngresoForm ? (
-            <form onSubmit={handleSaveIngreso} style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+            <form onSubmit={handleSaveIngreso} style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <input
                 type="number"
                 value={ingresoMonto}
@@ -207,7 +219,7 @@ export default function Dashboard() {
                 placeholder="Monto"
                 min="1"
                 autoFocus
-                style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem' }}
+                style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem', flex: 1, minWidth: '100px' }}
               />
               <button type="submit" className="btn btn-primary" disabled={savingIngreso} style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}>
                 {savingIngreso ? '...' : 'OK'}
@@ -220,7 +232,27 @@ export default function Dashboard() {
                   ? `$${ingresoMes.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
                   : '—'}
               </p>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{ingreso ? 'registrado' : 'sin cargar'}</p>
+              {!ingreso && ingresoAnterior && (
+                <button
+                  onClick={async () => {
+                    setSavingIngreso(true)
+                    const { data } = await supabase
+                      .from('ingresos')
+                      .upsert({ user_id: user.id, mes: mesCurrent, anio: anioCurrent, monto: parseFloat(ingresoAnterior.monto) }, { onConflict: 'user_id,mes,anio' })
+                      .select().single()
+                    if (data) setIngreso(data)
+                    setSavingIngreso(false)
+                  }}
+                  disabled={savingIngreso}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)', fontSize: '0.75rem', padding: '0.1rem 0', textDecoration: 'underline' }}
+                >
+                  📋 Copiar del mes anterior (${parseFloat(ingresoAnterior.monto).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+                </button>
+              )}
+              {!ingreso && !ingresoAnterior && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>sin cargar · <span onClick={() => router.push('/ingresos')} style={{ cursor: 'pointer', color: 'var(--primary-light)', textDecoration: 'underline' }}>ver historial</span></p>
+              )}
+              {ingreso && <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>registrado · <span onClick={() => router.push('/ingresos')} style={{ cursor: 'pointer', color: 'var(--primary-light)', textDecoration: 'underline' }}>historial</span></p>}
             </>
           )}
         </div>
