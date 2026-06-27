@@ -11,7 +11,6 @@ body {
   min-height: 100vh;
 }
 
-/* Colores base - mismo violeta que tu app Python */
 :root {
   --primary: #7c3aed;
   --primary-dark: #6d28d9;
@@ -35,7 +34,7 @@ body {
   padding: 1.5rem;
 }
 
-/* Botones */
+/* Buttons */
 .btn {
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
@@ -43,7 +42,16 @@ body {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -51,9 +59,29 @@ body {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-dark);
 }
+
+/* Nav button */
+.nav-btn {
+  padding: 0.4rem 0.85rem;
+}
+
+.nav-icon { font-size: 1rem; }
+.nav-label { font-size: 0.85rem; }
+
+/* Icon-only action buttons */
+.icon-btn {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.3rem 0.45rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+}
+
+.icon-btn:hover { background: var(--border); }
+.icon-btn.danger:hover { color: var(--danger); background: #ef444415; }
 
 /* Inputs */
 input, select, textarea {
@@ -64,9 +92,98 @@ input, select, textarea {
   color: var(--text);
   font-size: 0.9rem;
   width: 100%;
+  font-family: inherit;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+/* Form helpers */
+.form-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Cards grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+/* Expense row */
+.gasto-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  transition: border-color 0.15s;
+}
+
+.gasto-row:hover {
+  border-color: #3a3a3a;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .user-email { display: none; }
+  .nav-label { display: none; }
+  .nav-btn { padding: 0.4rem 0.65rem; }
+
+  .cards-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-box {
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
 }
